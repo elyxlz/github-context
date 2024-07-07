@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="github-context",
-    version="0.1.3",
+    version="0.2.0",
     packages=find_packages(),
     install_requires=[
         "PyGithub",
         "pyperclip",
+        "tqdm",
     ],
     entry_points={
         "console_scripts": [
@@ -24,5 +25,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.6',
 )
