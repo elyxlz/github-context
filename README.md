@@ -1,6 +1,6 @@
 # GitHub Context Extractor
 
-Extract context from GitHub repositories (code, issues, wiki ...) to your clipboard for AI.
+A simple CLI tool to extract context from GitHub repositories (code, issues, wiki ...) for AI.
 
 ## Install
 
