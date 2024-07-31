@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="github-context",
-    version="0.2.0",
+    version="0.2.3",
     packages=find_packages(),
     install_requires=[
         "PyGithub",
@@ -25,5 +25,5 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX :: Linux",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
