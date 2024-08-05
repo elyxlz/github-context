@@ -12,11 +12,14 @@ from github.ContentFile import ContentFile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
+
 def add_content(header: str, content: str) -> str:
     return f"{'='*50}\n{header}\n{'='*50}\n\n{content}\n\n"
 
+
 def should_ignore(path: str, ignore_patterns: List[str]) -> bool:
     return any(pattern in path for pattern in ignore_patterns) or path == ".gitignore"
+
 
 def is_binary(content: bytes, sample_size: int = 1024) -> bool:
     if b"\x00" in content[:sample_size]:
@@ -26,6 +29,7 @@ def is_binary(content: bytes, sample_size: int = 1024) -> bool:
         return False
     except UnicodeDecodeError:
         return True
+
 
 def extract_file_content(
     repo: Repository, content_file: ContentFile, ignore_patterns: List[str]
@@ -43,8 +47,12 @@ def extract_file_content(
             print(f"Error extracting {content_file.path}: {str(e)}")
     return None
 
+
 def extract_repo_content(
-    repo: Repository, path: str = "", ignore_patterns: List[str] = [], branch: str = "main"
+    repo: Repository,
+    path: str = "",
+    ignore_patterns: List[str] = [],
+    branch: str = "main",
 ) -> str:
     all_content = ""
     contents: List[ContentFile] = repo.get_contents(path, ref=branch)
@@ -75,6 +83,7 @@ def extract_repo_content(
 
     return all_content
 
+
 def extract_issues(repo: Repository) -> str:
     all_content = ""
     issues = list(repo.get_issues(state="all"))
@@ -93,11 +102,13 @@ def extract_issues(repo: Repository) -> str:
 
     return all_content
 
+
 def extract_single_issue(issue) -> str:
     content = f"Issue #{issue.number}: {issue.title}\n\n{issue.body}\n\nComments:\n"
     for comment in issue.get_comments():
         content += f"- {comment.user.login}: {comment.body}\n\n"
     return add_content(f"Issue: #{issue.number}", content)
+
 
 def extract_wiki(repo: Repository) -> str:
     all_content = ""
@@ -122,8 +133,10 @@ def extract_wiki(repo: Repository) -> str:
         print(f"Error extracting wiki: {str(e)}")
     return all_content
 
+
 def extract_single_wiki_page(page) -> str:
     return add_content(f"Wiki Page: {page.title}", page.content)
+
 
 def extract_readme(repo: Repository, branch: str) -> str:
     try:
@@ -134,18 +147,29 @@ def extract_readme(repo: Repository, branch: str) -> str:
         print(f"Error extracting README: {str(e)}")
         return ""
 
-def extract_file_tree(repo: Repository, path: str = "", branch: str = "main", prefix: str = "") -> str:
+
+def extract_file_tree(
+    repo: Repository, path: str = "", branch: str = "main", prefix: str = ""
+) -> str:
     tree = ""
     contents = repo.get_contents(path, ref=branch)
-    
+
     for content in contents:
         if content.type == "dir":
             tree += f"{prefix}├── {content.name}/\n"
             tree += extract_file_tree(repo, content.path, branch, prefix + "│   ")
         else:
             tree += f"{prefix}├── {content.name}\n"
-    
+
     return tree
+
+
+def get_default_branch(repo: Repository) -> str:
+    try:
+        return repo.default_branch
+    except:
+        return "main"  # Fallback to "main" if default_branch is not accessible
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -153,7 +177,8 @@ def main() -> None:
     )
     parser.add_argument("repo", help="Repository name in the format 'owner/repo'")
     parser.add_argument(
-        "--branch", default="main", help="Branch to extract content from (default: main)"
+        "--branch",
+        help="Branch to extract content from (default: repository's default branch)",
     )
     parser.add_argument(
         "--issues-only", action="store_true", help="Extract only issues"
@@ -178,14 +203,17 @@ def main() -> None:
     g = Github(github_token)
     repo = g.get_repo(args.repo)
 
-    all_content = f"Content of {args.repo} (branch: {args.branch})\n\n"
+    default_branch = get_default_branch(repo)
+    branch = args.branch if args.branch else default_branch
+
+    all_content = f"Content of {args.repo} (branch: {branch})\n\n"
 
     try:
         ignore_patterns: List[str] = []
         try:
-            gitignore_content = repo.get_contents(".gitignore", ref=args.branch).decoded_content.decode(
-                "utf-8"
-            )
+            gitignore_content = repo.get_contents(
+                ".gitignore", ref=branch
+            ).decoded_content.decode("utf-8")
             ignore_patterns = [
                 line.strip()
                 for line in gitignore_content.split("\n")
@@ -198,11 +226,13 @@ def main() -> None:
             futures = []
 
             if args.readme_only:
-                futures.append(executor.submit(extract_readme, repo, args.branch))
+                futures.append(executor.submit(extract_readme, repo, branch))
             else:
                 if args.code_only or (not args.issues_only and not args.wiki_only):
                     futures.append(
-                        executor.submit(extract_repo_content, repo, "", ignore_patterns, args.branch)
+                        executor.submit(
+                            extract_repo_content, repo, "", ignore_patterns, branch
+                        )
                     )
 
                 if not args.no_issues and not args.wiki_only and not args.code_only:
@@ -222,13 +252,15 @@ def main() -> None:
                 except Exception as e:
                     print(f"Error during extraction: {str(e)}")
 
-        if args.code_only or (not args.issues_only and not args.wiki_only and not args.readme_only):
-            file_tree = extract_file_tree(repo, branch=args.branch)
+        if args.code_only or (
+            not args.issues_only and not args.wiki_only and not args.readme_only
+        ):
+            file_tree = extract_file_tree(repo, branch=branch)
             all_content += add_content("File Structure", file_tree)
 
         if args.output:
             output_filename = os.path.join(
-                args.output, f"{args.repo.replace('/', '_')}_{args.branch}_content.txt"
+                args.output, f"{args.repo.replace('/', '_')}_{branch}_content.txt"
             )
             with open(output_filename, "w", encoding="utf-8") as f:
                 f.write(all_content)
@@ -239,6 +271,7 @@ def main() -> None:
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
