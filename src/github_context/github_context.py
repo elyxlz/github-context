@@ -18,7 +18,11 @@ def add_content(header: str, content: str) -> str:
 
 
 def should_ignore(path: str, ignore_patterns: List[str]) -> bool:
-    return any(pattern in path for pattern in ignore_patterns) or path == ".gitignore"
+    return (
+        any(pattern in path for pattern in ignore_patterns)
+        or path == ".gitignore"
+        or path.endswith(".lock")
+    )
 
 
 def is_binary(content: bytes, sample_size: int = 1024) -> bool:

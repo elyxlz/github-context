@@ -1,0 +1,26 @@
+[project]
+name = "github-context"
+version = "0.3.4"
+description = "A CLI tool to quickly extract context from GitHub repositories for AI"
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = ["PyGithub", "pyperclip", "tqdm"]
+authors = [{ name = "Elio Pascarelli", email = "elio@pascarelli.com" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/elyxlz/github-context"
+
+[project.scripts]
+ghc = "github_context.github_context:main"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
